@@ -64,6 +64,7 @@ public:
     void flush();
     void stop();
     uint8_t connected();
+    int canWrite();
 
     operator bool()
     {

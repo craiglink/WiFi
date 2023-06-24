@@ -379,6 +379,27 @@ int WiFiClient::read()
     return data;
 }
 
+// -1 for error, 0 for cannot write immediately, 1 for can write
+int WiFiClient::canWrite() {
+    int socketFileDescriptor = fd();
+
+    if (!_connected || (socketFileDescriptor < 0)) {
+        return -1;
+    }
+
+    //use select to make sure the socket is ready for writing
+    fd_set         set;
+    struct timeval tv;
+    FD_ZERO(&set);                       // empties the set
+    FD_SET(socketFileDescriptor, &set);  // adds FD to the set
+    tv.tv_sec  = 0;
+    tv.tv_usec = WIFI_CLIENT_SELECT_TIMEOUT_US;
+    if (select(socketFileDescriptor + 1, NULL, &set, NULL, &tv) < 0) {
+        return -1;
+    }
+    return FD_ISSET(socketFileDescriptor, &set) ? 1 : 0;
+}
+
 size_t WiFiClient::write(const uint8_t *buf, size_t size)
 {
     int res =0;
@@ -392,20 +413,7 @@ size_t WiFiClient::write(const uint8_t *buf, size_t size)
     }
 
     while(retry) {
-        //use select to make sure the socket is ready for writing
-        fd_set set;
-        struct timeval tv;
-        FD_ZERO(&set);        // empties the set
-        FD_SET(socketFileDescriptor, &set); // adds FD to the set
-        tv.tv_sec = 0;
-        tv.tv_usec = WIFI_CLIENT_SELECT_TIMEOUT_US;
-        retry--;
-
-        if(select(socketFileDescriptor + 1, NULL, &set, NULL, &tv) < 0) {
-            return 0;
-        }
-
-        if(FD_ISSET(socketFileDescriptor, &set)) {
+        if (canWrite() > 0) {
             res = send(socketFileDescriptor, (void*) buf, bytesRemaining, MSG_DONTWAIT);
             if(res > 0) {
                 totalBytesSent += res;
