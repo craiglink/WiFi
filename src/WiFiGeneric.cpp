@@ -667,12 +667,16 @@ bool wifiLowLevelInit(bool persistent){
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
 	if(!WiFiGenericClass::useStaticBuffers()) {
-	    cfg.static_tx_buf_num = 0;
-            cfg.dynamic_tx_buf_num = 32;
-	    cfg.tx_buf_type = 1;
-            cfg.cache_tx_buf_num = 4;  // can't be zero!
-	    cfg.static_rx_buf_num = 4;
-            cfg.dynamic_rx_buf_num = 32;
+            cfg.static_tx_buf_num  = 4;
+            cfg.dynamic_tx_buf_num = 0;
+            cfg.tx_buf_type        = 0;  // 0 for static, 1 for dynamic
+            cfg.cache_tx_buf_num   = 4;  // can't be zero!
+            cfg.static_rx_buf_num  = 8;  // must be >= rx_ba_win
+            cfg.dynamic_rx_buf_num = 2;  // 0 means infinity
+            // Mods
+            cfg.ampdu_rx_enable = 1;  // AMPDU - multiple packets in one WiFi frame
+            cfg.rx_ba_win       = 6;
+            cfg.ampdu_tx_enable = 1;
         }
 
         esp_err_t err = esp_wifi_init(&cfg);
