@@ -197,6 +197,8 @@ class WiFiGenericClass
     static void useStaticBuffers(bool bufferMode);
     static bool useStaticBuffers();
 
+    static void setBuffers(int static_rx, int dynamic_rx, int ba_win_rx, int static_tx, int dynamic_tx, int ba_win_tx, int cache_tx);
+
   protected:
     static bool _persistent;
     static bool _long_range;
