@@ -408,12 +408,12 @@ size_t WiFiClient::write(const uint8_t *buf, size_t size)
     size_t totalBytesSent = 0;
     size_t bytesRemaining = size;
 
-    if(!_connected || (socketFileDescriptor < 0)) {
-        return 0;
-    }
-
-    while(retry) {
-        if (canWrite() > 0) {
+    while(retry--) {
+        res = canWrite();
+        if (res < 0) {
+            return 0;
+        }
+        if (res > 0) {
             res = send(socketFileDescriptor, (void*) buf, bytesRemaining, MSG_DONTWAIT);
             if(res > 0) {
                 totalBytesSent += res;
@@ -634,4 +634,3 @@ int WiFiClient::fd() const
         return clientSocketHandle->fd();
     }
 }
-
