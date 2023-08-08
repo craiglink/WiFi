@@ -380,7 +380,7 @@ int WiFiClient::read()
 }
 
 // -1 for error, 0 for cannot write immediately, 1 for can write
-int WiFiClient::canWrite() {
+int WiFiClient::canWrite(long timeout) {
     int socketFileDescriptor = fd();
 
     if (!_connected || (socketFileDescriptor < 0)) {
@@ -393,7 +393,7 @@ int WiFiClient::canWrite() {
     FD_ZERO(&set);                       // empties the set
     FD_SET(socketFileDescriptor, &set);  // adds FD to the set
     tv.tv_sec  = 0;
-    tv.tv_usec = WIFI_CLIENT_SELECT_TIMEOUT_US;
+    tv.tv_usec = timeout;
     if (select(socketFileDescriptor + 1, NULL, &set, NULL, &tv) < 0) {
         return -1;
     }
@@ -409,7 +409,7 @@ size_t WiFiClient::write(const uint8_t *buf, size_t size)
     size_t bytesRemaining = size;
 
     while(retry--) {
-        res = canWrite();
+        res = canWrite(WIFI_CLIENT_SELECT_TIMEOUT_US);
         if (res < 0) {
             return 0;
         }

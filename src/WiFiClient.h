@@ -64,7 +64,7 @@ public:
     void flush();
     void stop();
     uint8_t connected();
-    int canWrite();
+    int canWrite(long timeout);
 
     operator bool()
     {
