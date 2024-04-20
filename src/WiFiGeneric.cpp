@@ -650,7 +650,7 @@ struct WifiInitConfig {
     int cache_tx_buf_num;   // 16 // min 16, default is 32
 }
 // To defaults / minimums which as specified in the reference below
-constexpr WifiInitConfigDefaults _wifi_dynamic_buffer_defaults{16,32,16,1,32,6,16};
+constexpr WifiInitConfig _wifi_dynamic_buffer_defaults{16,32,16,1,32,6,16};
 static WifiInitConfig _wifi_config = _wifi_dynamic_buffer_defaults;
 
 bool WiFiGenericClass::useStaticBuffers(){
