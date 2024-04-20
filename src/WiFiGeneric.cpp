@@ -650,7 +650,7 @@ struct WifiInitConfig {
     int cache_tx_buf_num;   // 16 // min 16, default is 32
 }
 // To defaults / minimums which as specified in the reference below
-constexpr WifiInitConfig _wifi_dynamic_buffer_defaults{16,32,16,1,32,6,16};
+const static WifiInitConfig _wifi_dynamic_buffer_defaults{16,32,16,1,32,6,16};
 static WifiInitConfig _wifi_config = _wifi_dynamic_buffer_defaults;
 
 bool WiFiGenericClass::useStaticBuffers(){
@@ -663,7 +663,7 @@ void WiFiGenericClass::useStaticBuffers(bool bufferMode){
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
         useStaticBuffers(bufferMode, cfg.static_rx_buf_num, cfg.dynamic_rx_buf_num, cfg.rx_ba_win, cfg.static_tx_buf_num, cfg.dynamic_tx_buf_num, cfg.rx_ba_win, cfg.cache_tx_buf_num);
     } else {
-        constexpr WifiInitConfigDefaults cfg = _wifi_dynamic_buffer_defaults;
+        const WifiInitConfig& cfg = _wifi_dynamic_buffer_defaults;
         useStaticBuffers(bufferMode, cfg.static_rx_buf_num, cfg.dynamic_rx_buf_num, cfg.rx_ba_win, cfg.static_tx_buf_num, cfg.dynamic_tx_buf_num, cfg.rx_ba_win, cfg.cache_tx_buf_num);
     }
 }
@@ -682,7 +682,7 @@ void WiFiGenericClass::useStaticBuffers(bool bufferMode, int rx_static_buf_num, 
     _wifiUseStaticBuffers = bufferMode;
 
     _wifi_config.static_rx_buf_num  = std::clamp(std::max(rx_static_buf_num, rx_ba_win), 2, 128); // recommended to be >= rx_ba_win
-    _wifi_config.dynamic_rx_buf_num = std::clamp((rx_dynamic_num ? std::max(rx_dynamic_buf_num, _wifi_config.static_rx_buf_num) : 0), 0, 1024); // 0 means infinity
+    _wifi_config.dynamic_rx_buf_num = std::clamp((rx_dynamic_buf_num ? std::max(rx_dynamic_buf_num, _wifi_config.static_rx_buf_num) : 0), 0, 1024); // 0 means infinity
     _wifi_config.ba_win_rx          = rx_ba_win;
 
     _wifi_config.static_tx_buf_num  = std::clamp(tx_static_buf_num, 1, 64);
