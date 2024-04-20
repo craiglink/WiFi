@@ -681,15 +681,15 @@ void WiFiGenericClass::useStaticBuffers(bool bufferMode, int rx_static_buf_num, 
 
     _wifiUseStaticBuffers = bufferMode;
 
-    _wifi_config.static_rx_buf_num  = std::clamp(std::max(rx_static_num, rx_ba_win), 2, 128); // recommended to be >= rx_ba_win
-    _wifi_config.dynamic_rx_buf_num = std::clamp((rx_dynamic_num ? std::max(rx_dynamic_num, _wifi_config.static_rx_buf_num) : 0), 0, 1024); // 0 means infinity
+    _wifi_config.static_rx_buf_num  = std::clamp(std::max(rx_static_buf_num, rx_ba_win), 2, 128); // recommended to be >= rx_ba_win
+    _wifi_config.dynamic_rx_buf_num = std::clamp((rx_dynamic_num ? std::max(rx_dynamic_buf_num, _wifi_config.static_rx_buf_num) : 0), 0, 1024); // 0 means infinity
     _wifi_config.ba_win_rx          = rx_ba_win;
 
-    _wifi_config.static_tx_buf_num  = std::clamp(tx_static_num, 1, 64);
-    _wifi_config.dynamic_tx_buf_num = std::clamp(tx_dynamic_num, 1, 128);
+    _wifi_config.static_tx_buf_num  = std::clamp(tx_static_buf_num, 1, 64);
+    _wifi_config.dynamic_tx_buf_num = std::clamp(tx_dynamic_buf_num, 1, 128);
     _wifi_config.ba_win_tx          = tx_ba_win;
 
-    _wifi_config.cache_tx_buf_num   = std::clamp(tx_cache_num, 16, 128);
+    _wifi_config.cache_tx_buf_num   = std::clamp(tx_cache_buf_num, 16, 128);
 }
 
 bool wifiLowLevelInit(bool persistent){
