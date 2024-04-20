@@ -714,7 +714,7 @@ bool wifiLowLevelInit(bool persistent){
         cfg.static_rx_buf_num  = _wifi_config.static_rx_buf_num;
         cfg.dynamic_rx_buf_num = _wifi_config.dynamic_rx_buf_num;
         cfg.ampdu_rx_enable    = !!_wifi_config.rx_ba_win;  // AMPDU - multiple packets in one WiFi frame
-        cfg.rx_ba_win          = std::clamp(_wifi_config.ba_win_rx,2,64);
+        cfg.rx_ba_win          = std::clamp(_wifi_config.rx_ba_win,2,64);
 
         cfg.static_tx_buf_num  = _wifi_config.static_tx_buf_num;
         cfg.dynamic_tx_buf_num = _wifi_config.dynamic_tx_buf_num;
