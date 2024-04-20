@@ -643,12 +643,12 @@ bool WiFiGenericClass::_wifiUseStaticBuffers = false;
 struct WifiInitConfig {
     int static_rx_buf_num;  // 16 recommended to be >= rx_ba_win
     int dynamic_rx_buf_num; // 32
-    int ba_win_rx;          // 16
+    int rx_ba_win;          // 16
     int static_tx_buf_num;  // 1
     int dynamic_tx_buf_num; // 32
-    int ba_win_tx;          // 6
+    int tx_ba_win;          // 6
     int cache_tx_buf_num;   // 16 // min 16, default is 32
-}
+};
 // To defaults / minimums which as specified in the reference below
 const static WifiInitConfig _wifi_dynamic_buffer_defaults{16,32,16,1,32,6,16};
 static WifiInitConfig _wifi_config = _wifi_dynamic_buffer_defaults;
@@ -664,7 +664,7 @@ void WiFiGenericClass::useStaticBuffers(bool bufferMode){
         useStaticBuffers(bufferMode, cfg.static_rx_buf_num, cfg.dynamic_rx_buf_num, cfg.rx_ba_win, cfg.static_tx_buf_num, cfg.dynamic_tx_buf_num, cfg.rx_ba_win, cfg.cache_tx_buf_num);
     } else {
         const WifiInitConfig& cfg = _wifi_dynamic_buffer_defaults;
-        useStaticBuffers(bufferMode, cfg.static_rx_buf_num, cfg.dynamic_rx_buf_num, cfg.rx_ba_win, cfg.static_tx_buf_num, cfg.dynamic_tx_buf_num, cfg.rx_ba_win, cfg.cache_tx_buf_num);
+        useStaticBuffers(bufferMode, cfg.static_rx_buf_num, cfg.dynamic_rx_buf_num, cfg.rx_ba_win, cfg.static_tx_buf_num, cfg.dynamic_tx_buf_num, cfg.tx_ba_win, cfg.cache_tx_buf_num);
     }
 }
 
