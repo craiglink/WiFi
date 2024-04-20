@@ -663,7 +663,7 @@ static int _ba_win_rx  = 16;
 static int _static_tx  = 1;  // default is 16
 static int _dynamic_tx = 32;
 static int _ba_win_tx  = 6;
-static int _cache_tx   = 16;  // min 16, default is 32
+static int _cache_tx   = 16;  //     min 16, default is 32
 
 void WiFiGenericClass::setBuffers(int static_rx, int dynamic_rx, int ba_win_rx, int static_tx, int dynamic_tx, int ba_win_tx, int cache_tx) {
     // https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/kconfig.html#config-esp-wifi-static-rx-buffer-num
@@ -706,7 +706,8 @@ bool wifiLowLevelInit(bool persistent){
             cfg.static_tx_buf_num  = _static_tx;
             cfg.dynamic_tx_buf_num = _dynamic_tx;
             cfg.ampdu_tx_enable    = !!_ba_win_tx;
-            cfg.tx_ba_win          = std::clamp(_ba_win_tx,2,64);
+            // not exposed in config structure
+            //cfg.tx_ba_win          = std::clamp(_ba_win_tx,2,64);
 
             cfg.cache_tx_buf_num   = _cache_tx;
         }
