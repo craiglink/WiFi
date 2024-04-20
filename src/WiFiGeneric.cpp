@@ -640,15 +640,32 @@ bool tcpipInit(){
 static bool lowLevelInitDone = false;
 bool WiFiGenericClass::_wifiUseStaticBuffers = false;
 
+struct WifiInitConfig {
+    int static_rx_buf_num;  // 16 recommended to be >= rx_ba_win
+    int dynamic_rx_buf_num; // 32
+    int ba_win_rx;          // 16
+    int static_tx_buf_num;  // 1
+    int dynamic_tx_buf_num; // 32
+    int ba_win_tx;          // 6
+    int cache_tx_buf_num;   // 16 // min 16, default is 32
+}
+// To defaults / minimums which as specified in the reference below
+constexpr WifiInitConfigDefaults _wifi_dynamic_buffer_defaults{16,32,16,1,32,6,16};
+static WifiInitConfig _wifi_config = _wifi_dynamic_buffer_defaults;
+
 bool WiFiGenericClass::useStaticBuffers(){
     return _wifiUseStaticBuffers;
 }
 
 void WiFiGenericClass::useStaticBuffers(bool bufferMode){
-    if (lowLevelInitDone) {
-        log_w("WiFi already started. Call WiFi.mode(WIFI_MODE_NULL) before setting Static Buffer Mode.");
-    } 
-    _wifiUseStaticBuffers = bufferMode;
+    if (bufferMode){
+        // maintains backwards compatibility6 with original implementation and settings for non-dynamic mode
+        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+        useStaticBuffers(bufferMode, cfg.static_rx_buf_num, cfg.dynamic_rx_buf_num, cfg.rx_ba_win, cfg.static_tx_buf_num, cfg.dynamic_tx_buf_num, cfg.rx_ba_win, cfg.cache_tx_buf_num);
+    } else {
+        constexpr WifiInitConfigDefaults cfg = _wifi_dynamic_buffer_defaults;
+        useStaticBuffers(bufferMode, cfg.static_rx_buf_num, cfg.dynamic_rx_buf_num, cfg.rx_ba_win, cfg.static_tx_buf_num, cfg.dynamic_tx_buf_num, cfg.rx_ba_win, cfg.cache_tx_buf_num);
+    }
 }
 
 // Temporary fix to ensure that CDC+JTAG stay on on ESP32-C3
@@ -656,26 +673,23 @@ void WiFiGenericClass::useStaticBuffers(bool bufferMode){
 extern "C" void phy_bbpll_en_usb(bool en);
 #endif
 
-// To defaults / minimums which as specified in the reference below
-static int _static_rx  = 16; // recommended to be >= rx_ba_win
-static int _dynamic_rx = 32;
-static int _ba_win_rx  = 16;
-static int _static_tx  = 1;  // default is 16
-static int _dynamic_tx = 32;
-static int _ba_win_tx  = 6;
-static int _cache_tx   = 16;  //     min 16, default is 32
-
-void WiFiGenericClass::setBuffers(int static_rx, int dynamic_rx, int ba_win_rx, int static_tx, int dynamic_tx, int ba_win_tx, int cache_tx) {
+void WiFiGenericClass::useStaticBuffers(bool bufferMode, int rx_static_buf_num, int rx_dynamic_buf_num, int rx_ba_win, int tx_static_buf_num, int tx_dynamic_buf_num, int tx_ba_win, int tx_cache_buf_num){
+    if (lowLevelInitDone) {
+        log_w("WiFi already started. Call WiFi.mode(WIFI_MODE_NULL) before setting Static Buffer Mode.");
+    } 
     // https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/kconfig.html#config-esp-wifi-static-rx-buffer-num
-    _static_rx  = std::clamp(std::max(static_rx, ba_win_rx), 2, 128); // recommended to be >= rx_ba_win
-    _dynamic_rx = std::clamp((dynamic_rx ? std::max(dynamic_rx, _static_rx) : 0), 0, 1024); // 0 means infinity
-    _ba_win_rx  = ba_win_rx;
 
-    _static_tx  = std::clamp(static_tx, 1, 64);
-    _dynamic_tx = std::clamp(dynamic_tx, 1, 128);
-    _ba_win_tx  = ba_win_tx;
+    _wifiUseStaticBuffers = bufferMode;
 
-    _cache_tx   = std::clamp(cache_tx, 16, 128);
+    _wifi_config.static_rx_buf_num  = std::clamp(std::max(rx_static_num, rx_ba_win), 2, 128); // recommended to be >= rx_ba_win
+    _wifi_config.dynamic_rx_buf_num = std::clamp((rx_dynamic_num ? std::max(rx_dynamic_num, _wifi_config.static_rx_buf_num) : 0), 0, 1024); // 0 means infinity
+    _wifi_config.ba_win_rx          = rx_ba_win;
+
+    _wifi_config.static_tx_buf_num  = std::clamp(tx_static_num, 1, 64);
+    _wifi_config.dynamic_tx_buf_num = std::clamp(tx_dynamic_num, 1, 128);
+    _wifi_config.ba_win_tx          = tx_ba_win;
+
+    _wifi_config.cache_tx_buf_num   = std::clamp(tx_cache_num, 16, 128);
 }
 
 bool wifiLowLevelInit(bool persistent){
@@ -694,23 +708,21 @@ bool wifiLowLevelInit(bool persistent){
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
-	    if(!WiFiGenericClass::useStaticBuffers()) {
-            // based on the conditional above, we are dynamic
-            cfg.tx_buf_type        = 1;   // 0 for static, 1 for dynamic
+        // class defaults using dynamic buffers - _wifi_dynamic_buffer_defaults
+        cfg.tx_buf_type        = WiFiGenericClass::useStaticBuffers() ? 0 : 1;
 
-            cfg.static_rx_buf_num  = _static_rx;
-            cfg.dynamic_rx_buf_num = _dynamic_rx;
-            cfg.ampdu_rx_enable    = !!_ba_win_rx;  // AMPDU - multiple packets in one WiFi frame
-            cfg.rx_ba_win          = std::clamp(_ba_win_rx,2,64);
+        cfg.static_rx_buf_num  = _wifi_config.static_rx_buf_num;
+        cfg.dynamic_rx_buf_num = _wifi_config.dynamic_rx_buf_num;
+        cfg.ampdu_rx_enable    = !!_wifi_config.ba_win_rx;  // AMPDU - multiple packets in one WiFi frame
+        cfg.rx_ba_win          = std::clamp(_wifi_config.ba_win_rx,2,64);
 
-            cfg.static_tx_buf_num  = _static_tx;
-            cfg.dynamic_tx_buf_num = _dynamic_tx;
-            cfg.ampdu_tx_enable    = !!_ba_win_tx;
-            // not exposed in config structure
-            //cfg.tx_ba_win          = std::clamp(_ba_win_tx,2,64);
+        cfg.static_tx_buf_num  = _wifi_config.static_tx_buf_num;
+        cfg.dynamic_tx_buf_num = _wifi_config.dynamic_tx_buf_num;
+        cfg.ampdu_tx_enable    = !!_wifi_config.ba_win_tx;
+        // not exposed in config structure
+        //cfg.tx_ba_win          = std::clamp(_wifi_config.ba_win_tx,2,64);
 
-            cfg.cache_tx_buf_num   = _cache_tx;
-        }
+        cfg.cache_tx_buf_num   = _wifi_config.cache_tx_buf_num;
 
         esp_err_t err = esp_wifi_init(&cfg);
         if(err){
