@@ -45,6 +45,7 @@ extern "C" {
 } //extern "C"
 
 #include "esp32-hal.h"
+#include <algorithm>
 #include <vector>
 #include "sdkconfig.h"
 
@@ -655,22 +656,26 @@ void WiFiGenericClass::useStaticBuffers(bool bufferMode){
 extern "C" void phy_bbpll_en_usb(bool en);
 #endif
 
-static int _static_tx  = 0;
-static int _dynamic_tx = 32;
-static int _cache_tx   = 1;
-static int _static_rx  = 4;
+// To defaults / minimums which as specified in the reference below
+static int _static_rx  = 16; // recommended to be >= rx_ba_win
 static int _dynamic_rx = 32;
 static int _ba_win_rx  = 16;
+static int _static_tx  = 1;  // default is 16
+static int _dynamic_tx = 32;
 static int _ba_win_tx  = 6;
+static int _cache_tx   = 16;  // min 16, default is 32
 
 void WiFiGenericClass::setBuffers(int static_rx, int dynamic_rx, int ba_win_rx, int static_tx, int dynamic_tx, int ba_win_tx, int cache_tx) {
-    _static_rx  = static_rx;
-    _dynamic_rx = dynamic_rx;
+    // https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/kconfig.html#config-esp-wifi-static-rx-buffer-num
+    _static_rx  = std::clamp(std::max(static_rx, ba_win_rx), 2, 128); // recommended to be >= rx_ba_win
+    _dynamic_rx = std::clamp((dynamic_rx ? std::max(dynamic_rx, _static_rx) : 0), 0, 1024); // 0 means infinity
     _ba_win_rx  = ba_win_rx;
-    _static_tx  = static_tx;
-    _dynamic_tx = dynamic_tx;
+
+    _static_tx  = std::clamp(static_tx, 1, 64);
+    _dynamic_tx = std::clamp(dynamic_tx, 1, 128);
     _ba_win_tx  = ba_win_tx;
-    _cache_tx   = cache_tx;
+
+    _cache_tx   = std::clamp(cache_tx, 16, 128);
 }
 
 bool wifiLowLevelInit(bool persistent){
@@ -689,17 +694,21 @@ bool wifiLowLevelInit(bool persistent){
 
         wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
-	if(!WiFiGenericClass::useStaticBuffers()) {
-            cfg.static_rx_buf_num  = _static_rx;    // must be >= rx_ba_win
-            cfg.dynamic_rx_buf_num = _dynamic_rx;   // 0 means infinity
+	    if(!WiFiGenericClass::useStaticBuffers()) {
+            // based on the conditional above, we are dynamic
+            cfg.tx_buf_type        = 1;   // 0 for static, 1 for dynamic
+
+            cfg.static_rx_buf_num  = _static_rx;
+            cfg.dynamic_rx_buf_num = _dynamic_rx;
             cfg.ampdu_rx_enable    = !!_ba_win_rx;  // AMPDU - multiple packets in one WiFi frame
-            cfg.rx_ba_win          = std::min(_ba_win_rx, _static_rx);
+            cfg.rx_ba_win          = std::clamp(_ba_win_rx,2,64);
 
             cfg.static_tx_buf_num  = _static_tx;
-            cfg.dynamic_tx_buf_num = _static_tx ? 0 : _dynamic_tx;
-            cfg.tx_buf_type        = !_static_tx;   // 0 for static, 1 for dynamic
+            cfg.dynamic_tx_buf_num = _dynamic_tx;
             cfg.ampdu_tx_enable    = !!_ba_win_tx;
-            cfg.cache_tx_buf_num   = _cache_tx;     // can't be zero!
+            cfg.tx_ba_win          = std::clamp(_ba_win_tx,2,64);
+
+            cfg.cache_tx_buf_num   = _cache_tx;
         }
 
         esp_err_t err = esp_wifi_init(&cfg);
