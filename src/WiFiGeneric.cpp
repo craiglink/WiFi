@@ -683,11 +683,11 @@ void WiFiGenericClass::useStaticBuffers(bool bufferMode, int rx_static_buf_num, 
 
     _wifi_config.static_rx_buf_num  = std::clamp(std::max(rx_static_buf_num, rx_ba_win), 2, 128); // recommended to be >= rx_ba_win
     _wifi_config.dynamic_rx_buf_num = std::clamp((rx_dynamic_buf_num ? std::max(rx_dynamic_buf_num, _wifi_config.static_rx_buf_num) : 0), 0, 1024); // 0 means infinity
-    _wifi_config.ba_win_rx          = rx_ba_win;
+    _wifi_config.rx_ba_win          = rx_ba_win;
 
     _wifi_config.static_tx_buf_num  = std::clamp(tx_static_buf_num, 1, 64);
     _wifi_config.dynamic_tx_buf_num = std::clamp(tx_dynamic_buf_num, 1, 128);
-    _wifi_config.ba_win_tx          = tx_ba_win;
+    _wifi_config.tx_ba_win          = tx_ba_win;
 
     _wifi_config.cache_tx_buf_num   = std::clamp(tx_cache_buf_num, 16, 128);
 }
@@ -713,14 +713,14 @@ bool wifiLowLevelInit(bool persistent){
 
         cfg.static_rx_buf_num  = _wifi_config.static_rx_buf_num;
         cfg.dynamic_rx_buf_num = _wifi_config.dynamic_rx_buf_num;
-        cfg.ampdu_rx_enable    = !!_wifi_config.ba_win_rx;  // AMPDU - multiple packets in one WiFi frame
+        cfg.ampdu_rx_enable    = !!_wifi_config.rx_ba_win;  // AMPDU - multiple packets in one WiFi frame
         cfg.rx_ba_win          = std::clamp(_wifi_config.ba_win_rx,2,64);
 
         cfg.static_tx_buf_num  = _wifi_config.static_tx_buf_num;
         cfg.dynamic_tx_buf_num = _wifi_config.dynamic_tx_buf_num;
-        cfg.ampdu_tx_enable    = !!_wifi_config.ba_win_tx;
+        cfg.ampdu_tx_enable    = !!_wifi_config.tx_ba_win;
         // not exposed in config structure
-        //cfg.tx_ba_win          = std::clamp(_wifi_config.ba_win_tx,2,64);
+        //cfg.tx_ba_win          = std::clamp(_wifi_config.tx_ba_win,2,64);
 
         cfg.cache_tx_buf_num   = _wifi_config.cache_tx_buf_num;
 
