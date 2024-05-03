@@ -1,6 +1,6 @@
 # Modified WiFi Library
 
-This is a modified version of the WiFi library from the [Arduino Espressif32 Framework](https://github.com/espressif/arduino-esp32.git).  The original code is from the 2.0.7 version of that
+This is a modified version of the WiFi library from the [Arduino Espressif32 Framework](https://github.com/espressif/arduino-esp32.git).  The original code is from the 2.0.15 version of that
 framework.
 
 It adds a new WiFiClient::canWrite() method.  That method can be used to determine if
